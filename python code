@@ -1,0 +1,108 @@
+function morse_gui
+   
+    clc; close all; clear;
+
+
+    letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    codes = {'.-','-...','-.-.','-..','.','..-.','--.','....','..','.---', ...
+              '-.-','.-..','--','-.','---','.--.','--.-','.-.','...','-', ...
+              '..-','...-','.--','-..-','-.--','--..'};
+
+
+    f = figure('Name','Morse Code Converter','NumberTitle','off',...
+               'Position',[300 200 700 500],'Color',[0.95 0.95 0.95]);
+
+    uicontrol('Style','text','String','Morse Code Converter',...
+              'FontSize',14,'FontWeight','bold',...
+              'Position',[200 450 300 30],'BackgroundColor',[0.95 0.95 0.95]);
+
+
+    bg = uibuttongroup(f,'Position',[0.05 0.75 0.9 0.15],'Title','Select Mode');
+    r1 = uicontrol(bg,'Style','radiobutton','String','Letters → Morse',...
+                   'Position',[30 20 150 30],'FontSize',11);
+    r2 = uicontrol(bg,'Style','radiobutton','String','Morse → Letters',...
+                   'Position',[250 20 150 30],'FontSize',11);
+
+
+    uicontrol('Style','text','String','Enter Text / Morse Code:',...
+              'Position',[50 370 200 25],'BackgroundColor',[0.95 0.95 0.95]);
+    txtInput = uicontrol('Style','edit','Position',[250 370 400 30],...
+                         'FontSize',11,'BackgroundColor','white');
+
+
+    uicontrol('Style','text','String','Output:',...
+              'Position',[50 320 100 25],'BackgroundColor',[0.95 0.95 0.95]);
+    txtOutput = uicontrol('Style','edit','Position',[150 300 500 50],...
+                          'FontSize',11,'Max',2,'Enable','inactive','BackgroundColor','white');
+
+
+    uicontrol('Style','pushbutton','String','Convert','FontSize',12,...
+              'Position',[280 250 140 40],'Callback',@convertCallback);
+
+
+    ax = axes('Parent',f,'Position',[0.1 0.08 0.8 0.3]);
+    title(ax,'ASK Waveform (for Letters → Morse)');
+
+    function convertCallback(~,~)
+        mode = bg.SelectedObject;
+        if mode == r1
+            % ===== Letters → Morse =====
+            msg = upper(get(txtInput,'String'));
+            morse = '';
+            for k = 1:length(msg)
+                if msg(k) == ' '
+                    morse = [morse '/ '];
+                else
+                    idx = find(letters == msg(k));
+                    if ~isempty(idx)
+                        morse = [morse codes{idx} ' '];
+                    end
+                end
+            end
+            set(txtOutput,'String',morse);
+
+
+            fs = 1000; dot = 0.1; s = [];
+            for i = 1:length(morse)
+                if morse(i)=='.'
+                    s = [s ones(1,fs*dot)];
+                elseif morse(i)=='-'
+                    s = [s ones(1,fs*4*dot)];
+                else
+                    s = [s zeros(1,fs*dot)];
+                end
+                s = [s zeros(1,fs*dot)];
+            end
+
+
+            t = (0:length(s)-1)/fs;
+            plot(ax,t,s,'LineWidth',1.5);
+            xlabel(ax,'Time (s)');
+            ylabel(ax,'Laser ON/OFF');
+            title(ax,['Morse ASK: ' msg]);
+            grid(ax,'on');
+
+        elseif mode == r2
+
+            morse = get(txtInput,'String');
+            parts = split(morse, ' ');
+            decoded = '';
+            for i = 1:length(parts)
+                sym = parts{i};
+                if strcmp(sym, '/')
+                    decoded = [decoded ' '];
+                else
+                    idx = find(strcmp(codes, sym));
+                    if ~isempty(idx)
+                        decoded = [decoded letters(idx)];
+                    end
+                end
+            end
+            set(txtOutput,'String',decoded);
+            cla(ax);
+            title(ax,'No waveform for Morse → Letters');
+        else
+            msgbox('Please select a mode first.','Error','error');
+        end
+    end
+end
